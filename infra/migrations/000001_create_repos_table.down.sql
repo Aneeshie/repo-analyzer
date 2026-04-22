@@ -1,0 +1,3 @@
+DROP INDEX IF EXISTS idx_repos_url;
+DROP TABLE IF EXISTS repos;
+DROP TYPE IF EXISTS repo_status;
