@@ -22,4 +22,4 @@ CREATE TABLE IF NOT EXISTS repos (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_repos_url ON repos(url);
+CREATE INDEX IF NOT EXISTS idx_repos_url ON repos(url);
