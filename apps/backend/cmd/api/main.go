@@ -1,18 +1,36 @@
 package main
 
 import (
-	"net/http"
+	"context"
+	"log"
+	"os"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/Aneeshie/repo-analyzer/backend/internal/server"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	r := chi.NewRouter()
+	if err := godotenv.Load(); err != nil {
+		log.Println("No. env file found")
+	}
 
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("OK"))
-	})
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		dbURL = "postgres://repo_user:repo_pass@localhost:5432/repo_analyzer?sslmode=disable"
+	}
 
-	println("Server starting on 8080")
-	http.ListenAndServe(":8080", r)
+	pool, err := pgxpool.New(context.Background(), dbURL)
+	if err != nil {
+		log.Fatal("Unable to connect to database:", err)
+	}
+	defer pool.Close()
+
+	log.Println("Connected to PostgreSQL with connection pool")
+
+	srv := server.NewServer(pool)
+	if err := srv.Run(); err != nil {
+		log.Fatal("Server error:", err)
+	}
+
 }
