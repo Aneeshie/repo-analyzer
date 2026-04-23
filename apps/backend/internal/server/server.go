@@ -5,6 +5,9 @@ import (
 	"log"
 	"net/http"
 
+	handlers "github.com/Aneeshie/repo-analyzer/backend/internal/handler"
+	"github.com/Aneeshie/repo-analyzer/backend/internal/repository"
+	"github.com/Aneeshie/repo-analyzer/backend/internal/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -24,7 +27,16 @@ func NewServer(db *pgxpool.Pool) *Server {
 }
 
 func (s *Server) setupRoutes() {
+
+	repoRepo := repository.NewRepoRepository(s.db)
+
+	repoService := service.NewRepoService(repoRepo)
+
+	repoHandler := handlers.NewRepoHandler(repoService)
+
 	s.router.Get("/health", s.healthCheck)
+
+	s.router.Post("/api/v1/repos", repoHandler.CreateRepo)
 }
 
 func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
