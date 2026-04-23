@@ -1,0 +1,50 @@
+name: Test Backend
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-backend:
+    name: Run Go Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: repo_user
+          POSTGRES_PASSWORD: repo_pass
+          POSTGRES_DB: repo_analyzer_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Install golang-migrate
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+          sudo mv migrate /usr/local/bin/migrate
+
+      - name: Run migrations on test database
+        run: |
+          migrate -path infra/migrations -database "postgres://repo_user:repo_pass@localhost:5432/repo_analyzer_test?sslmode=disable" up
+
+      - name: Run Go tests
+        run: |
+          cd apps/backend
+          go test ./... -v
