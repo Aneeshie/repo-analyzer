@@ -22,3 +22,13 @@ func (s *RepoService) CreateRepo(ctx context.Context, url string) (*models.Repo,
 
 	return s.repoRepo.Create(ctx, url)
 }
+
+// GetRepo retrieves a repo by its ID.
+func (s *RepoService) GetRepo(ctx context.Context, id string) (*models.Repo, error) {
+	return s.repoRepo.FindByID(ctx, id)
+}
+
+// UpdateRepoStatus updates the status of a repo by its ID.
+func (s *RepoService) UpdateRepoStatus(ctx context.Context, id string, status string) (*models.Repo, error) {
+	return s.repoRepo.UpdateStatus(ctx, id, status)
+}
