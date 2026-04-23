@@ -6,6 +6,7 @@ import (
 
 	"github.com/Aneeshie/repo-analyzer/backend/internal/service"
 	"github.com/Aneeshie/repo-analyzer/backend/pkg/models"
+	"github.com/go-chi/chi/v5"
 )
 
 type RepoHandler struct {
@@ -45,5 +46,32 @@ func (h *RepoHandler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *RepoHandler) GetRepo(w http.ResponseWriter, r *http.Request) {
+	//get id from url
+	//
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		http.Error(w, "ID is required", http.StatusBadRequest)
+		return
+	}
+
+	repo, err := h.repoService.GetRepo(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Failed to get repo", http.StatusInternalServerError)
+		return
+	}
+
+	resp := models.GetRepoResponse{
+		ID:        repo.ID,
+		URL:       repo.URL,
+		Status:    repo.Status,
+		CreatedAt: repo.CreatedAt,
+		UpdatedAt: repo.UpdatedAt,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
