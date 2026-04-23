@@ -32,3 +32,25 @@ func (r *RepoRepository) Create(ctx context.Context, url string) (*models.Repo, 
 
 	return &repo, nil
 }
+
+func (r *RepoRepository) FindByID(ctx context.Context, id string) (*models.Repo, error) {
+	var repo models.Repo
+
+	query := `SELECT id, url, status, created_at, updated_at FROM repos WHERE id = $1`
+
+	err := r.db.QueryRow(ctx, query, id).Scan(&repo.ID, &repo.URL, &repo.Status, &repo.CreatedAt, &repo.UpdatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &repo, nil
+}
+
+func (r *RepoRepository) UpdateStatus(ctx context.Context, id, status string) error {
+	query := `UPDATE repos SET status = $1, updated_at = NOW() WHERE id = $2`
+
+	_, err := r.db.Exec(ctx, query, status, id)
+
+	return err
+}
