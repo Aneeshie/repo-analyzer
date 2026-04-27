@@ -25,16 +25,18 @@ func setupTestPool(t *testing.T) (*Pool, *repository.RepoRepository, func()) {
 	require.NoError(t, err)
 
 	// Clean tables
-	_, _ = pool.Exec(context.Background(), "TRUNCATE repos CASCADE")
+	_, err = pool.Exec(context.Background(), "TRUNCATE repos CASCADE")
 	require.NoError(t, err)
 
 	repoRepo := repository.NewRepoRepository(pool)
 	repoService := service.NewRepoService(repoRepo)
 	githubService := service.NewGitHubService()
 
-	storagePath, _ := os.MkdirTemp("", "worker-test-*")
+	storagePath, err := os.MkdirTemp("", "worker-test-*")
+	require.NoError(t, err)
 
-	workerPool := NewPool(repoService, githubService, storagePath, 2)
+	// Pass the db pool to NewPool
+	workerPool := NewPool(repoService, githubService, storagePath, pool, 2)
 
 	cleanup := func() {
 		workerPool.Shutdown()
@@ -44,7 +46,6 @@ func setupTestPool(t *testing.T) (*Pool, *repository.RepoRepository, func()) {
 
 	return workerPool, repoRepo, cleanup
 }
-
 func TestPool_AddJob(t *testing.T) {
 	workerPool, repoRepo, cleanup := setupTestPool(t)
 	defer cleanup()
