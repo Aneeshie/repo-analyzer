@@ -29,6 +29,6 @@ func (s *RepoService) GetRepo(ctx context.Context, id string) (*models.Repo, err
 }
 
 // UpdateRepoStatus updates the status of a repo by its ID.
-func (s *RepoService) UpdateRepoStatus(ctx context.Context, id string, status string) (*models.Repo, error) {
+func (s *RepoService) UpdateRepoStatus(ctx context.Context, id string, status string) error {
 	return s.repoRepo.UpdateStatus(ctx, id, status)
 }
