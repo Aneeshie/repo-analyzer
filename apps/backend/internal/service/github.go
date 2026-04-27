@@ -43,15 +43,27 @@ func (s *GitHubService) ParseGitHubURL(url string) (owner, repo string, err erro
 	// Remove .git suffix if present
 	url = strings.TrimSuffix(url, ".git")
 
+	// Remove trailing slash if present
+	url = strings.TrimSuffix(url, "/")
+
 	// Split by slash
 	parts := strings.Split(url, "/")
-	if len(parts) < 2 {
-		return "", "", fmt.Errorf("invalid GitHub URL")
+
+	// Need at least 2 parts: domain + owner + repo
+	// Example: github.com/facebook/react -> 3 parts
+	if len(parts) < 3 {
+		return "", "", fmt.Errorf("invalid GitHub URL: need owner and repo name")
 	}
 
 	// Last two parts should be owner/repo
+	// Skip the domain (parts[0])
 	owner = parts[len(parts)-2]
 	repo = strings.TrimSuffix(parts[len(parts)-1], ".git")
+
+	// Validate owner and repo are not empty
+	if owner == "" || repo == "" {
+		return "", "", fmt.Errorf("invalid GitHub URL: owner or repo is empty")
+	}
 
 	return owner, repo, nil
 }
