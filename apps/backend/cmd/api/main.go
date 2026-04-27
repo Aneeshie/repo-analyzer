@@ -5,7 +5,11 @@ import (
 	"log"
 	"os"
 
+	handlers "github.com/Aneeshie/repo-analyzer/backend/internal/handler"
+	"github.com/Aneeshie/repo-analyzer/backend/internal/repository"
 	"github.com/Aneeshie/repo-analyzer/backend/internal/server"
+	"github.com/Aneeshie/repo-analyzer/backend/internal/service"
+	"github.com/Aneeshie/repo-analyzer/backend/internal/worker"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
@@ -27,6 +31,22 @@ func main() {
 	defer pool.Close()
 
 	log.Println("Connected to PostgreSQL with connection pool")
+
+	repoRepo := repository.NewRepoRepository(pool)
+	repoService := service.NewRepoService(repoRepo)
+	githubService := service.NewGitHubService()
+
+	//get the storage path
+	storagePath := os.Getenv("STORAGE_PATH")
+	if storagePath == "" {
+		storagePath = "../storage/repos"
+	}
+
+	//create workerPool
+	workerPool := worker.NewPool(repoService, githubService, storagePath, 4)
+
+	// pass worker pool to the handler
+	repoHandler := handlers.NewRepoHandler(repoService, workerPool)
 
 	srv := server.NewServer(pool)
 	if err := srv.Run(); err != nil {
