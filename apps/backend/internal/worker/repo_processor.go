@@ -5,21 +5,25 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/Aneeshie/repo-analyzer/backend/internal/repository"
 	"github.com/Aneeshie/repo-analyzer/backend/internal/service"
 	"github.com/Aneeshie/repo-analyzer/backend/pkg/models"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type RepoProcessor struct {
 	repoService   *service.RepoService
 	githubService *service.GitHubService
 	storagePath   string
+	db            *pgxpool.Pool
 }
 
-func NewRepoProcessor(repoService *service.RepoService, githubService *service.GitHubService, storagePath string) *RepoProcessor {
+func NewRepoProcessor(repoService *service.RepoService, githubService *service.GitHubService, storagePath string, db *pgxpool.Pool) *RepoProcessor {
 	return &RepoProcessor{
 		repoService:   repoService,
 		githubService: githubService,
 		storagePath:   storagePath,
+		db:            db,
 	}
 }
 
@@ -42,10 +46,31 @@ func (p *RepoProcessor) ProcessRepo(ctx context.Context, repoID, repoURL string)
 
 	log.Printf("Successfully cloned repo: %s", repoURL)
 
+	if err := p.parseDependencies(ctx, repoID, clonePath); err != nil {
+		log.Printf("Failed to parse dependencies: %v", err)
+	}
+
 	//update status to completed (for now, parsing later....)
 	if err := p.repoService.UpdateRepoStatus(ctx, repoID, models.StatusCompleted); err != nil {
 		log.Printf("failed to update repo status: %v", err)
 		return
 	}
 
+}
+
+func (p *RepoProcessor) parseDependencies(ctx context.Context, repoID, repoPath string) error {
+	parser := service.NewDependencyParser()
+	deps, err := parser.ParseRepo(repoPath, repoID)
+	if err != nil {
+		return err
+	}
+
+	if len(deps) > 0 {
+		depRepo := repository.NewDependencyRepository(p.db)
+		if err := depRepo.CreateBatch(ctx, deps); err != nil {
+			return err
+		}
+		log.Printf("Parsed %d dependencies for repo %s", len(deps), repoID)
+	}
+	return nil
 }

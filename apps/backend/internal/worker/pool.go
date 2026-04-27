@@ -7,6 +7,7 @@ import (
 
 	"github.com/Aneeshie/repo-analyzer/backend/internal/service"
 	"github.com/Aneeshie/repo-analyzer/backend/pkg/models"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Pool struct {
@@ -18,14 +19,18 @@ type Pool struct {
 	stopChan chan struct{}
 }
 
-func NewPool(repoService *service.RepoService, githubService *service.GitHubService, storagePath string, workerCount int) *Pool {
-
+func NewPool(
+	repoService *service.RepoService,
+	githubService *service.GitHubService,
+	storagePath string,
+	db *pgxpool.Pool,
+	workerCount int,
+) *Pool {
 	pool := &Pool{
 		jobQueue:      make(chan models.Job, 100),
-		repoProcessor: NewRepoProcessor(repoService, githubService, storagePath),
+		repoProcessor: NewRepoProcessor(repoService, githubService, storagePath, db),
 		workerCount:   workerCount,
-
-		stopChan: make(chan struct{}),
+		stopChan:      make(chan struct{}),
 	}
 	pool.start()
 	return pool

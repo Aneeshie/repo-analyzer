@@ -43,7 +43,7 @@ func main() {
 	}
 
 	//create workerPool
-	workerPool := worker.NewPool(repoService, githubService, storagePath, 4)
+	workerPool := worker.NewPool(repoService, githubService, storagePath, pool, 4)
 	defer workerPool.Shutdown()
 
 	// pass worker pool to the handler
