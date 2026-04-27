@@ -2,9 +2,12 @@ package service
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseGitHubURL(t *testing.T) {
@@ -129,24 +132,75 @@ func TestParseGitHubURL(t *testing.T) {
 }
 
 // Add test for GetRepoMetadata (mock this later? or skip for now)
-func TestGetRepoMetadata_RequiresToken(t *testing.T) {
+
+func TestCloneRepo_Success(t *testing.T) {
 	s := NewGitHubService()
 
-	// This test will actually call GitHub API
-	// For now, skip if no token
-	if s.client == nil {
-		t.Skip("No GitHub client available")
-	}
+	// Create temp directory for clone
+	tempDir, err := os.MkdirTemp("", "repo-test-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tempDir)
 
-	// Just test that the function exists
-	assert.NotNil(t, s.GetRepoMetadata)
+	// Clone a small public repo
+	ctx := context.Background()
+	err = s.CloneRepo(ctx, "https://github.com/octocat/Hello-World.git", tempDir)
+
+	assert.NoError(t, err)
+
+	// Verify .git directory exists (means clone worked)
+	gitDir := filepath.Join(tempDir, ".git")
+	_, err = os.Stat(gitDir)
+	assert.NoError(t, err)
 }
 
-// Add test for CloneRepo
+func TestCloneRepo_InvalidURL(t *testing.T) {
+	s := NewGitHubService()
+
+	tempDir, err := os.MkdirTemp("", "repo-test-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tempDir)
+
+	ctx := context.Background()
+	err = s.CloneRepo(ctx, "https://github.com/invalid-repo-12345/does-not-exist", tempDir)
+
+	assert.Error(t, err)
+}
+
 func TestCloneRepo_InvalidPath(t *testing.T) {
 	s := NewGitHubService()
 
-	// Test with invalid URL
-	err := s.CloneRepo(context.Background(), "not-a-url", "/tmp/invalid")
+	ctx := context.Background()
+	// Invalid path (should fail to create directory)
+	err := s.CloneRepo(ctx, "https://github.com/octocat/Hello-World.git", "/invalid/path/that/doesnt/exist")
+
+	assert.Error(t, err)
+}
+
+func TestGetRepoMetadata_WithToken(t *testing.T) {
+	// Skip if no GitHub token
+	if os.Getenv("GITHUB_TOKEN") == "" {
+		t.Skip("GITHUB_TOKEN not set, skipping")
+	}
+
+	s := NewGitHubService()
+	ctx := context.Background()
+
+	repo, err := s.GetRepoMetadata(ctx, "octocat", "Hello-World")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, repo)
+	assert.Equal(t, "Hello-World", *repo.Name)
+}
+
+func TestGetRepoMetadata_NotFound(t *testing.T) {
+	if os.Getenv("GITHUB_TOKEN") == "" {
+		t.Skip("GITHUB_TOKEN not set, skipping")
+	}
+
+	s := NewGitHubService()
+	ctx := context.Background()
+
+	_, err := s.GetRepoMetadata(ctx, "invalid-owner-12345", "invalid-repo-67890")
+
 	assert.Error(t, err)
 }

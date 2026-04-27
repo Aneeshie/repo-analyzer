@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Aneeshie/repo-analyzer/backend/pkg/models"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -47,10 +48,19 @@ func (r *RepoRepository) FindByID(ctx context.Context, id string) (*models.Repo,
 	return &repo, nil
 }
 
-func (r *RepoRepository) UpdateStatus(ctx context.Context, id, status string) error {
+func (r *RepoRepository) UpdateStatus(ctx context.Context, id string, status string) error {
 	query := `UPDATE repos SET status = $1, updated_at = NOW() WHERE id = $2`
 
-	_, err := r.db.Exec(ctx, query, status, id)
+	result, err := r.db.Exec(ctx, query, status, id)
+	if err != nil {
+		return err
+	}
 
-	return err
+	// Check if any row was updated
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("repo not found")
+	}
+
+	return nil
 }

@@ -11,11 +11,11 @@ import (
 )
 
 type RepoHandler struct {
-	repoService *service.RepoService
-	workerPool  *worker.Pool
+	repoService service.RepoServiceInterface
+	workerPool  worker.WorkerPoolInterface
 }
 
-func NewRepoHandler(repoService *service.RepoService, workerPool *worker.Pool) *RepoHandler {
+func NewRepoHandler(repoService service.RepoServiceInterface, workerPool worker.WorkerPoolInterface) *RepoHandler {
 	return &RepoHandler{
 		repoService: repoService,
 		workerPool:  workerPool,

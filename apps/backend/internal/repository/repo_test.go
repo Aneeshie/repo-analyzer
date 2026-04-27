@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"testing"
 
+	"github.com/Aneeshie/repo-analyzer/backend/pkg/models"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -74,5 +75,60 @@ func TestRepoRepository_CreateDuplicate(t *testing.T) {
 	assert.NoError(t, err)
 
 	_, err = repo.Create(context.Background(), url)
+	assert.Error(t, err)
+}
+
+func TestRepoRepository_FindByID(t *testing.T) {
+	pool := setupTestDB(t)
+	repo := NewRepoRepository(pool)
+
+	// First create a repo
+	url := "https://github.com/test/findme"
+	created, err := repo.Create(context.Background(), url)
+	require.NoError(t, err)
+
+	// Then find it
+	found, err := repo.FindByID(context.Background(), created.ID)
+
+	assert.NoError(t, err)
+	assert.Equal(t, created.ID, found.ID)
+	assert.Equal(t, url, found.URL)
+	assert.Equal(t, models.StatusPending, found.Status)
+}
+
+func TestRepoRepository_FindByID_NotFound(t *testing.T) {
+	pool := setupTestDB(t)
+	repo := NewRepoRepository(pool)
+
+	_, err := repo.FindByID(context.Background(), "00000000-0000-0000-0000-000000000000")
+
+	assert.Error(t, err)
+}
+
+func TestRepoRepository_UpdateStatus(t *testing.T) {
+	pool := setupTestDB(t)
+	repo := NewRepoRepository(pool)
+
+	// Create a repo
+	url := "https://github.com/test/updateme"
+	created, err := repo.Create(context.Background(), url)
+	require.NoError(t, err)
+
+	// Update status
+	err = repo.UpdateStatus(context.Background(), created.ID, models.StatusCloning)
+	require.NoError(t, err)
+
+	// Verify status changed
+	updated, err := repo.FindByID(context.Background(), created.ID)
+	require.NoError(t, err)
+	assert.Equal(t, models.StatusCloning, updated.Status)
+}
+
+func TestRepoRepository_UpdateStatus_InvalidID(t *testing.T) {
+	pool := setupTestDB(t)
+	repo := NewRepoRepository(pool)
+
+	err := repo.UpdateStatus(context.Background(), "00000000-0000-0000-0000-000000000000", models.StatusCompleted)
+
 	assert.Error(t, err)
 }
