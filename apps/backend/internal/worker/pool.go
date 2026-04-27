@@ -33,6 +33,7 @@ func NewPool(repoService *service.RepoService, githubService *service.GitHubServ
 
 func (p *Pool) start() {
 	for i := 0; i < p.workerCount; i++ {
+		p.wg.Add(1)
 		go func(workerId int) {
 
 			defer p.wg.Done()
