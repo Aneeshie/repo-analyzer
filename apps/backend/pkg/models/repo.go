@@ -19,6 +19,11 @@ type Repo struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+type Job struct {
+	RepoID  string
+	RepoURL string
+}
+
 type CreateRepoRequest struct {
 	URL string `json:"url"`
 }
