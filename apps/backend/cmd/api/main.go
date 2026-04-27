@@ -44,11 +44,12 @@ func main() {
 
 	//create workerPool
 	workerPool := worker.NewPool(repoService, githubService, storagePath, 4)
+	defer workerPool.Shutdown()
 
 	// pass worker pool to the handler
 	repoHandler := handlers.NewRepoHandler(repoService, workerPool)
 
-	srv := server.NewServer(pool)
+	srv := server.NewServer(pool, repoHandler)
 	if err := srv.Run(); err != nil {
 		log.Fatal("Server error:", err)
 	}

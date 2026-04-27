@@ -5,17 +5,20 @@ import (
 	"net/http"
 
 	"github.com/Aneeshie/repo-analyzer/backend/internal/service"
+	"github.com/Aneeshie/repo-analyzer/backend/internal/worker"
 	"github.com/Aneeshie/repo-analyzer/backend/pkg/models"
 	"github.com/go-chi/chi/v5"
 )
 
 type RepoHandler struct {
 	repoService *service.RepoService
+	workerPool  *worker.Pool
 }
 
-func NewRepoHandler(repoService *service.RepoService) *RepoHandler {
+func NewRepoHandler(repoService *service.RepoService, workerPool *worker.Pool) *RepoHandler {
 	return &RepoHandler{
 		repoService: repoService,
+		workerPool:  workerPool,
 	}
 }
 
@@ -37,6 +40,11 @@ func (h *RepoHandler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to create repo", http.StatusInternalServerError)
 		return
 	}
+
+	h.workerPool.AddJob(models.Job{
+		RepoID:  repo.ID,
+		RepoURL: repo.URL,
+	})
 
 	resp := models.CreateRepoResponse{
 		ID:     repo.ID,

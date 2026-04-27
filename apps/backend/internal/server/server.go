@@ -6,37 +6,33 @@ import (
 	"net/http"
 
 	handlers "github.com/Aneeshie/repo-analyzer/backend/internal/handler"
-	"github.com/Aneeshie/repo-analyzer/backend/internal/repository"
-	"github.com/Aneeshie/repo-analyzer/backend/internal/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Server struct {
-	router *chi.Mux
-	db     *pgxpool.Pool
-	port   string
+	router      *chi.Mux
+	db          *pgxpool.Pool
+	port        string
+	repoHandler *handlers.RepoHandler
 }
 
-func NewServer(db *pgxpool.Pool) *Server {
-	return &Server{
-		router: chi.NewRouter(),
-		db:     db,
-		port:   ":8080",
+func NewServer(db *pgxpool.Pool, repoHandler *handlers.RepoHandler) *Server {
+	server := &Server{
+		router:      chi.NewRouter(),
+		db:          db,
+		port:        ":8080",
+		repoHandler: repoHandler,
 	}
+	server.setupRoutes()
+	return server
 }
 
 func (s *Server) setupRoutes() {
 
-	repoRepo := repository.NewRepoRepository(s.db)
-
-	repoService := service.NewRepoService(repoRepo)
-
-	repoHandler := handlers.NewRepoHandler(repoService)
-
 	s.router.Get("/health", s.healthCheck)
-
-	s.router.Post("/api/v1/repos", repoHandler.CreateRepo)
+	s.router.Post("/api/v1/repos", s.repoHandler.CreateRepo)
+	s.router.Get("/api/v1/repos/{id}", s.repoHandler.GetRepo)
 }
 
 func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
