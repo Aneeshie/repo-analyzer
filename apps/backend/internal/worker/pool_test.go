@@ -2,6 +2,8 @@ package worker
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -9,10 +11,48 @@ import (
 	"github.com/Aneeshie/repo-analyzer/backend/internal/repository"
 	"github.com/Aneeshie/repo-analyzer/backend/internal/service"
 	"github.com/Aneeshie/repo-analyzer/backend/pkg/models"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const testDBLockID int64 = 928374650192 // stable lock id to serialize DB-mutating tests
+
+func acquireTestDBLock(t *testing.T, pool *pgxpool.Pool) {
+	t.Helper()
+	_, err := pool.Exec(context.Background(), "SELECT pg_advisory_lock($1)", testDBLockID)
+	require.NoError(t, err)
+}
+
+func releaseTestDBLock(t *testing.T, pool *pgxpool.Pool) {
+	t.Helper()
+	_, _ = pool.Exec(context.Background(), "SELECT pg_advisory_unlock($1)", testDBLockID)
+}
+
+func waitForRepoProcessed(t *testing.T, repoRepo *repository.RepoRepository, repoID string, timeout time.Duration) string {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+
+	for time.Now().Before(deadline) {
+		repo, err := repoRepo.FindByID(context.Background(), repoID)
+		if err == nil {
+			if repo.Status != models.StatusPending && repo.Status != models.StatusCloning {
+				return repo.Status
+			}
+		} else if !errors.Is(err, pgx.ErrNoRows) {
+			require.NoError(t, err)
+		}
+
+		time.Sleep(250 * time.Millisecond)
+	}
+
+	repo, err := repoRepo.FindByID(context.Background(), repoID)
+	if err != nil {
+		require.NoError(t, fmt.Errorf("timed out waiting for repo %s to be processed: %w", repoID, err))
+	}
+	return repo.Status
+}
 
 func setupTestPool(t *testing.T) (*Pool, *repository.RepoRepository, *pgxpool.Pool, func()) {
 	// Setup test database
@@ -23,6 +63,10 @@ func setupTestPool(t *testing.T) (*Pool, *repository.RepoRepository, *pgxpool.Po
 
 	pool, err := pgxpool.New(context.Background(), dbURL)
 	require.NoError(t, err)
+
+	// Serialize tests that mutate shared tables so parallel package tests
+	// don't TRUNCATE each other's data.
+	acquireTestDBLock(t, pool)
 
 	// Clean tables
 	_, err = pool.Exec(context.Background(), "TRUNCATE repos, dependencies CASCADE")
@@ -41,6 +85,7 @@ func setupTestPool(t *testing.T) (*Pool, *repository.RepoRepository, *pgxpool.Po
 	cleanup := func() {
 		// Clean up after test
 		_, _ = pool.Exec(context.Background(), "TRUNCATE repos, dependencies CASCADE")
+		releaseTestDBLock(t, pool)
 		pool.Close()
 		os.RemoveAll(storagePath)
 	}
@@ -67,16 +112,12 @@ func TestPool_AddJob(t *testing.T) {
 		RepoURL: repo.URL,
 	})
 
-	// Give worker time to process
-	time.Sleep(10 * time.Second)
-
 	// Check status updated
-	updated, err := repoRepo.FindByID(context.Background(), repo.ID)
-	require.NoError(t, err)
+	status := waitForRepoProcessed(t, repoRepo, repo.ID, 20*time.Second)
 
 	// Should be completed (not pending or cloning)
-	assert.NotEqual(t, models.StatusPending, updated.Status)
-	assert.NotEqual(t, models.StatusCloning, updated.Status)
+	assert.NotEqual(t, models.StatusPending, status)
+	assert.NotEqual(t, models.StatusCloning, status)
 }
 
 func TestPool_Shutdown(t *testing.T) {
@@ -111,16 +152,14 @@ func TestPool_MultipleWorkers(t *testing.T) {
 		})
 	}
 
-	// Let workers process (increased timeout for CI)
-	time.Sleep(30 * time.Second)
-
 	// Verify all repos are processed
 	for _, repoID := range repoIDs {
-		var status string
-		err := pool.QueryRow(context.Background(),
-			"SELECT status FROM repos WHERE id = $1", repoID).Scan(&status)
-		require.NoError(t, err)
+		status := waitForRepoProcessed(t, repoRepo, repoID, 60*time.Second)
 		assert.NotEqual(t, models.StatusPending, status)
 		assert.NotEqual(t, models.StatusCloning, status)
 	}
+
+	// Ensure pool is still usable (sanity check that connection isn't wedged).
+	require.NoError(t, pool.Ping(context.Background()))
 }
+

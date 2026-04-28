@@ -67,4 +67,6 @@ jobs:
           TEST_DATABASE_URL: postgres://repo_user:repo_pass@localhost:5432/repo_analyzer_test?sslmode=disable
         run: |
           cd apps/backend
-          go test ./... -v -count=1
+          # Packages run in parallel by default; several tests TRUNCATE shared tables.
+          # Run serially to avoid cross-package DB interference.
+          go test ./... -v -count=1 -p 1
