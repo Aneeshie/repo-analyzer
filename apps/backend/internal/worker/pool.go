@@ -65,8 +65,13 @@ func (p *Pool) AddJob(job models.Job) {
 }
 
 func (p *Pool) Shutdown() {
-	log.Println("Shutting down worker pool...")
-	close(p.stopChan)
+	select {
+	case <-p.stopChan:
+		return
+	default:
+		close(p.stopChan)
+	}
+
 	p.wg.Wait()
 	close(p.jobQueue)
 	log.Println("Worker pool shutdown complete")
