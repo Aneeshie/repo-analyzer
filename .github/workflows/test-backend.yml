@@ -40,11 +40,23 @@ jobs:
           curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
           sudo mv migrate /usr/local/bin/migrate
 
-      - name: Run migrations on test database
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432 -U repo_user; do
+            sleep 1
+          done
+
+      - name: Force clean migrations (for idempotency)
+        run: |
+          migrate -path infra/migrations -database "postgres://repo_user:repo_pass@localhost:5432/repo_analyzer_test?sslmode=disable" force 1 2>/dev/null || true
+
+      - name: Run migrations up
         run: |
           migrate -path infra/migrations -database "postgres://repo_user:repo_pass@localhost:5432/repo_analyzer_test?sslmode=disable" up
 
       - name: Run Go tests
+        env:
+          TEST_DATABASE_URL: postgres://repo_user:repo_pass@localhost:5432/repo_analyzer_test?sslmode=disable
         run: |
           cd apps/backend
-          go test ./... -v
+          go test ./... -v -count=1
