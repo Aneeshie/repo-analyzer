@@ -40,19 +40,27 @@ jobs:
           curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
           sudo mv migrate /usr/local/bin/migrate
 
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
       - name: Wait for PostgreSQL
         run: |
           until pg_isready -h localhost -p 5432 -U repo_user; do
             sleep 1
           done
 
-      - name: Force clean migrations (for idempotency)
+      - name: Reset database schema
         run: |
-          migrate -path infra/migrations -database "postgres://repo_user:repo_pass@localhost:5432/repo_analyzer_test?sslmode=disable" force 1 2>/dev/null || true
+          psql postgres://repo_user:repo_pass@localhost:5432/repo_analyzer_test -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 
-      - name: Run migrations up
+      - name: Run all migrations in order
         run: |
           migrate -path infra/migrations -database "postgres://repo_user:repo_pass@localhost:5432/repo_analyzer_test?sslmode=disable" up
+
+      - name: Verify migrations applied
+        run: |
+          psql postgres://repo_user:repo_pass@localhost:5432/repo_analyzer_test -c "\dt"
+          psql postgres://repo_user:repo_pass@localhost:5432/repo_analyzer_test -c "\d repos"
 
       - name: Run Go tests
         env:
