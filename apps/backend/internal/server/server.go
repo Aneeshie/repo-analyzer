@@ -15,14 +15,16 @@ type Server struct {
 	db          *pgxpool.Pool
 	port        string
 	repoHandler *handlers.RepoHandler
+	depHandler *handlers.DependencyHandler
 }
 
-func NewServer(db *pgxpool.Pool, repoHandler *handlers.RepoHandler) *Server {
+func NewServer(db *pgxpool.Pool, repoHandler *handlers.RepoHandler, depHandler *handlers.DependencyHandler) *Server {
 	server := &Server{
 		router:      chi.NewRouter(),
 		db:          db,
 		port:        ":8080",
 		repoHandler: repoHandler,
+		depHandler: depHandler,
 	}
 	server.setupRoutes()
 	return server
@@ -33,6 +35,8 @@ func (s *Server) setupRoutes() {
 	s.router.Get("/health", s.healthCheck)
 	s.router.Post("/api/v1/repos", s.repoHandler.CreateRepo)
 	s.router.Get("/api/v1/repos/{id}", s.repoHandler.GetRepo)
+	s.router.Get("/api/v1/repos/{id}/dependencies", s.depHandler.GetDependencies)
+
 }
 
 func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
