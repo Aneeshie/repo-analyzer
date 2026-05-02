@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,9 +48,9 @@ export default function AnalysisPage() {
   const [depsError, setDepsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
-    // eslint-disable-next-line prefer-const
-    let pollInterval: NodeJS.Timeout;
 
     const pollStatus = async () => {
       try {
@@ -61,7 +61,7 @@ export default function AnalysisPage() {
         setRepo(data);
 
         if (data.status === "completed" || data.status === "failed") {
-          clearInterval(pollInterval);
+          if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
 
           if (data.status === "completed") {
             fetchDependencies();
@@ -69,7 +69,7 @@ export default function AnalysisPage() {
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error fetching status");
-        clearInterval(pollInterval);
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       }
     };
 
@@ -95,9 +95,11 @@ export default function AnalysisPage() {
     };
 
     pollStatus(); // initial check
-    pollInterval = setInterval(pollStatus, 2000);
+    pollIntervalRef.current = setInterval(pollStatus, 2000);
 
-    return () => clearInterval(pollInterval);
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
   }, [id]);
 
   const groupedDependencies = dependencies.reduce((acc, dep) => {
@@ -139,22 +141,25 @@ export default function AnalysisPage() {
                 </CardDescription>
               </div>
               <div>
-                {normalizeStatus(repo?.status || "pending") === "completed" && (
-                  <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 px-3 py-1.5 text-sm font-medium">
-                    <CheckCircle2 className="w-4 h-4 mr-1.5" /> Completed
-                  </Badge>
-                )}
-                {normalizeStatus(repo?.status || "pending") === "failed" && (
-                  <Badge variant="destructive" className="px-3 py-1.5 text-sm font-medium">
-                    <XCircle className="w-4 h-4 mr-1.5" /> Failed
-                  </Badge>
-                )}
-                {(normalizeStatus(repo?.status || "pending") === "pending" || normalizeStatus(repo?.status || "pending") === "processing") && (
-                  <Badge variant="secondary" className="px-3 py-1.5 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 text-sm font-medium">
-                    <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                    {normalizeStatus(repo?.status || "pending") === "processing" ? "Processing..." : "Pending..."}
-                  </Badge>
-                )}
+                {(() => {
+                  const displayStatus = normalizeStatus(repo?.status || "pending");
+                  if (displayStatus === "completed") return (
+                    <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 px-3 py-1.5 text-sm font-medium">
+                      <CheckCircle2 className="w-4 h-4 mr-1.5" /> Completed
+                    </Badge>
+                  );
+                  if (displayStatus === "failed") return (
+                    <Badge variant="destructive" className="px-3 py-1.5 text-sm font-medium">
+                      <XCircle className="w-4 h-4 mr-1.5" /> Failed
+                    </Badge>
+                  );
+                  return (
+                    <Badge variant="secondary" className="px-3 py-1.5 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 text-sm font-medium">
+                      <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                      {displayStatus === "processing" ? "Processing..." : "Pending..."}
+                    </Badge>
+                  );
+                })()}
               </div>
             </div>
           </CardHeader>
