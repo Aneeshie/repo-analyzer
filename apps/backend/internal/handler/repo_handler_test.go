@@ -14,9 +14,10 @@ import (
 
 // Mock service implementing RepoServiceInterface
 type mockRepoService struct {
-	createFunc func(ctx context.Context, url string) (*models.Repo, error)
-	getFunc    func(ctx context.Context, id string) (*models.Repo, error)
-	updateFunc func(ctx context.Context, id string, status string) error
+	createFunc  func(ctx context.Context, url string) (*models.Repo, error)
+	getFunc     func(ctx context.Context, id string) (*models.Repo, error)
+	updateFunc  func(ctx context.Context, id string, status string) error
+	getDepsFunc func(ctx context.Context, id string) ([]models.Dependency, error)
 }
 
 func (m *mockRepoService) CreateRepo(ctx context.Context, url string) (*models.Repo, error) {
@@ -38,6 +39,13 @@ func (m *mockRepoService) UpdateRepoStatus(ctx context.Context, id string, statu
 		return nil
 	}
 	return m.updateFunc(ctx, id, status)
+}
+
+func (m *mockRepoService) GetRepoDependencies(ctx context.Context, id string) ([]models.Dependency, error) {
+	if m.getDepsFunc == nil {
+		return []models.Dependency{}, nil
+	}
+	return m.getDepsFunc(ctx, id)
 }
 
 // Mock worker pool implementing WorkerPoolInterface

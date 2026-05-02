@@ -33,7 +33,8 @@ func main() {
 	log.Println("Connected to PostgreSQL with connection pool")
 
 	repoRepo := repository.NewRepoRepository(pool)
-	repoService := service.NewRepoService(repoRepo)
+	depRepo := repository.NewDependencyRepository(pool)
+	repoService := service.NewRepoService(repoRepo, depRepo)
 	githubService := service.NewGitHubService()
 
 	//get the storage path

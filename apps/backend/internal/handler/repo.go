@@ -83,3 +83,20 @@ func (h *RepoHandler) GetRepo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
+
+func (h *RepoHandler) GetRepoDependencies(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		http.Error(w, "ID is required", http.StatusBadRequest)
+		return
+	}
+
+	deps, err := h.repoService.GetRepoDependencies(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Failed to get dependencies", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(deps)
+}

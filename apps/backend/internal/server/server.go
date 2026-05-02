@@ -33,6 +33,7 @@ func (s *Server) setupRoutes() {
 	s.router.Get("/health", s.healthCheck)
 	s.router.Post("/api/v1/repos", s.repoHandler.CreateRepo)
 	s.router.Get("/api/v1/repos/{id}", s.repoHandler.GetRepo)
+	s.router.Get("/api/v1/repos/{id}/dependencies", s.repoHandler.GetRepoDependencies)
 }
 
 func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
