@@ -1,0 +1,41 @@
+name: Test Frontend
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-frontend:
+    name: Run Frontend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd apps/web
+          bun install
+
+      - name: Run TypeScript type check
+        run: |
+          cd apps/web
+          bun run tsc --noEmit
+
+      - name: Run linting
+        run: |
+          cd apps/web
+          bun run lint
+
+      - name: Build Next.js app
+        run: |
+          cd apps/web
+          bun run build
