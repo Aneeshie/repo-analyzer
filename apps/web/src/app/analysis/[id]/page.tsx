@@ -9,7 +9,17 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-type RepoStatus = "pending" | "processing" | "completed" | "failed";
+type RepoStatus = "pending" | "processing" | "completed" | "failed" | "analyzing" | "cloning" | "parsing" | string;
+
+const normalizeStatus = (status: RepoStatus): "pending" | "processing" | "completed" | "failed" => {
+  if (["analyzing", "cloning", "parsing", "processing"].includes(status as string)) {
+    return "processing";
+  }
+  if (status === "completed" || status === "failed") {
+    return status as "completed" | "failed";
+  }
+  return "pending";
+};
 
 interface Repo {
   id: string;
@@ -35,9 +45,11 @@ export default function AnalysisPage() {
   const [repo, setRepo] = useState<Repo | null>(null);
   const [dependencies, setDependencies] = useState<Dependency[]>([]);
   const [loadingDeps, setLoadingDeps] = useState(true);
+  const [depsError, setDepsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line prefer-const
     let pollInterval: NodeJS.Timeout;
 
     const pollStatus = async () => {
@@ -64,6 +76,7 @@ export default function AnalysisPage() {
     const fetchDependencies = async () => {
       try {
         setLoadingDeps(true);
+        setDepsError(null);
         const res = await fetch(`/api/v1/repos/${id}/dependencies`);
         if (!res.ok) {
           throw new Error("Failed to fetch dependencies");
@@ -74,7 +87,8 @@ export default function AnalysisPage() {
         const depsList = data ? (Array.isArray(data) ? data : data.dependencies || []) : [];
         setDependencies(depsList);
       } catch (err) {
-        console.error("Dependency fetch error:", err);
+        setDepsError(err instanceof Error ? err.message : "Error fetching dependencies");
+        setDependencies([]);
       } finally {
         setLoadingDeps(false);
       }
@@ -125,20 +139,20 @@ export default function AnalysisPage() {
                 </CardDescription>
               </div>
               <div>
-                {repo?.status === "completed" && (
+                {normalizeStatus(repo?.status || "pending") === "completed" && (
                   <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 px-3 py-1.5 text-sm font-medium">
                     <CheckCircle2 className="w-4 h-4 mr-1.5" /> Completed
                   </Badge>
                 )}
-                {repo?.status === "failed" && (
+                {normalizeStatus(repo?.status || "pending") === "failed" && (
                   <Badge variant="destructive" className="px-3 py-1.5 text-sm font-medium">
                     <XCircle className="w-4 h-4 mr-1.5" /> Failed
                   </Badge>
                 )}
-                {(repo?.status === "pending" || repo?.status === "processing" || !repo) && (
+                {(normalizeStatus(repo?.status || "pending") === "pending" || normalizeStatus(repo?.status || "pending") === "processing") && (
                   <Badge variant="secondary" className="px-3 py-1.5 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 text-sm font-medium">
                     <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                    {repo?.status === "processing" ? "Processing..." : "Pending..."}
+                    {normalizeStatus(repo?.status || "pending") === "processing" ? "Processing..." : "Pending..."}
                   </Badge>
                 )}
               </div>
@@ -158,6 +172,16 @@ export default function AnalysisPage() {
                 <Skeleton className="h-[300px] rounded-xl" />
                 <Skeleton className="h-[300px] rounded-xl" />
               </div>
+            ) : depsError ? (
+              <Card className="border-dashed border-destructive/50 bg-destructive/5 shadow-none">
+                <CardContent className="flex flex-col items-center justify-center p-16 text-center">
+                  <XCircle className="w-16 h-16 text-destructive mb-4 opacity-80" />
+                  <p className="text-xl font-medium text-destructive mb-2">Failed to load dependencies</p>
+                  <p className="text-muted-foreground max-w-sm mt-1 leading-relaxed">
+                    {depsError}
+                  </p>
+                </CardContent>
+              </Card>
             ) : Object.keys(groupedDependencies).length > 0 ? (
               <div className="grid grid-cols-1 gap-6">
                 {Object.entries(groupedDependencies).map(([ecosystem, deps]) => (
@@ -213,7 +237,7 @@ export default function AnalysisPage() {
                   <Package className="w-16 h-16 text-muted-foreground mb-4 opacity-30" />
                   <p className="text-xl font-medium text-foreground mb-2">No dependencies found</p>
                   <p className="text-muted-foreground max-w-sm mt-1 leading-relaxed">
-                    We couldn't detect any dependencies for this repository. It might be empty or using an unsupported package manager.
+                    We couldn&apos;t detect any dependencies for this repository. It might be empty or using an unsupported package manager.
                   </p>
                 </CardContent>
               </Card>
