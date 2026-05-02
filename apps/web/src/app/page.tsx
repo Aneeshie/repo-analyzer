@@ -17,6 +17,20 @@ export default function Home() {
     e.preventDefault();
     if (!url) return;
 
+    try {
+      const parsedUrl = new URL(url);
+      if (
+        !parsedUrl.hostname.endsWith("github.com") ||
+        !/^\/[^/]+\/[^/]+(\/|\.git)?$/.test(parsedUrl.pathname)
+      ) {
+        setError("Please enter a valid GitHub repository URL");
+        return;
+      }
+    } catch {
+      setError("Please enter a valid GitHub repository URL");
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
