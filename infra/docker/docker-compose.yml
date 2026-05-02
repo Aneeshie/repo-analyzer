@@ -16,5 +16,32 @@ services:
       timeout: 5s
       retries: 4
 
+  api:
+    build:
+      context: ../../
+      dockerfile: apps/backend/Dockerfile
+    container_name: repo_analyzer_api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://repo_user:repo_pass@postgres:5432/repo_analyzer?sslmode=disable
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ../../
+      dockerfile: apps/web/Dockerfile
+    container_name: repo_analyzer_web
+    depends_on:
+      - api
+    environment:
+      - NEXT_PUBLIC_API_ORIGIN=http://localhost:8080
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
 volumes:
   postgres_data:
