@@ -73,7 +73,8 @@ func setupTestPool(t *testing.T) (*Pool, *repository.RepoRepository, *pgxpool.Po
 	require.NoError(t, err)
 
 	repoRepo := repository.NewRepoRepository(pool)
-	repoService := service.NewRepoService(repoRepo)
+	depRepo := repository.NewDependencyRepository(pool)
+	repoService := service.NewRepoService(repoRepo, depRepo)
 	githubService := service.NewGitHubService()
 
 	storagePath, err := os.MkdirTemp("", "worker-test-*")

@@ -9,11 +9,13 @@ import (
 
 type RepoService struct {
 	repoRepo *repository.RepoRepository
+	depRepo  *repository.DependencyRepository
 }
 
-func NewRepoService(repoRepo *repository.RepoRepository) *RepoService {
+func NewRepoService(repoRepo *repository.RepoRepository, depRepo *repository.DependencyRepository) *RepoService {
 	return &RepoService{
 		repoRepo: repoRepo,
+		depRepo:  depRepo,
 	}
 }
 
@@ -31,4 +33,9 @@ func (s *RepoService) GetRepo(ctx context.Context, id string) (*models.Repo, err
 // UpdateRepoStatus updates the status of a repo by its ID.
 func (s *RepoService) UpdateRepoStatus(ctx context.Context, id string, status string) error {
 	return s.repoRepo.UpdateStatus(ctx, id, status)
+}
+
+// GetRepoDependencies retrieves dependencies for a repo by its ID.
+func (s *RepoService) GetRepoDependencies(ctx context.Context, id string) ([]models.Dependency, error) {
+	return s.depRepo.GetByRepoID(ctx, id)
 }
