@@ -1,5 +1,5 @@
 # Build Stage
-FROM oven/bun:1.1 AS builder
+FROM oven/bun:1 AS builder
 WORKDIR /app
 
 # Copy root configurations
@@ -11,6 +11,10 @@ COPY packages ./packages
 
 # Install all dependencies
 RUN bun install
+
+# Accept build args
+ARG API_ORIGIN
+ENV API_ORIGIN=$API_ORIGIN
 
 # Build the web app via turborepo
 RUN bun run build --filter=web
