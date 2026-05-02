@@ -3,7 +3,7 @@
 set -e
 
 cd "$(dirname "$0")/../docker"
-docker-compose up -d
+docker-compose up --build -d
 
 echo "Waiting for PostgreSQL.."
 sleep 5
