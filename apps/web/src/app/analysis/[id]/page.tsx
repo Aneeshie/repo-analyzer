@@ -44,13 +44,13 @@ export default function AnalysisPage() {
       try {
         const res = await fetch(`/api/v1/repos/${id}`);
         if (!res.ok) throw new Error("Failed to fetch repository status");
-        
+
         const data: Repo = await res.json();
         setRepo(data);
 
         if (data.status === "completed" || data.status === "failed") {
           clearInterval(pollInterval);
-          
+
           if (data.status === "completed") {
             fetchDependencies();
           }
@@ -68,7 +68,7 @@ export default function AnalysisPage() {
         if (!res.ok) {
           throw new Error("Failed to fetch dependencies");
         }
-        
+
         const data = await res.json();
         // Handle both possible structures: array or { dependencies: [...] }, and null when empty
         const depsList = data ? (Array.isArray(data) ? data : data.dependencies || []) : [];
@@ -137,7 +137,7 @@ export default function AnalysisPage() {
                 )}
                 {(repo?.status === "pending" || repo?.status === "processing" || !repo) && (
                   <Badge variant="secondary" className="px-3 py-1.5 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 text-sm font-medium">
-                    <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> 
+                    <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
                     {repo?.status === "processing" ? "Processing..." : "Pending..."}
                   </Badge>
                 )}
@@ -152,7 +152,7 @@ export default function AnalysisPage() {
               <Package className="w-6 h-6 mr-2 text-primary" />
               Dependencies
             </h2>
-            
+
             {loadingDeps ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Skeleton className="h-[300px] rounded-xl" />

@@ -21,21 +21,13 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: |
-          cd apps/web
-          bun install
+        run: bun install
 
       - name: Run TypeScript type check
-        run: |
-          cd apps/web
-          bun run tsc --noEmit
+        run: bun run check-types
 
       - name: Run linting
-        run: |
-          cd apps/web
-          bun run lint
+        run: bun run lint
 
       - name: Build Next.js app
-        run: |
-          cd apps/web
-          bun run build
+        run: bun run build
