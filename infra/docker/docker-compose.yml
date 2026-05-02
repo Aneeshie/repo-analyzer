@@ -34,11 +34,13 @@ services:
     build:
       context: ../../
       dockerfile: apps/web/Dockerfile
+      args:
+        - API_ORIGIN=http://api:8080
     container_name: repo_analyzer_web
     depends_on:
       - api
     environment:
-      - NEXT_PUBLIC_API_ORIGIN=http://localhost:8080
+      - API_ORIGIN=http://api:8080
     ports:
       - "3000:3000"
     restart: unless-stopped
