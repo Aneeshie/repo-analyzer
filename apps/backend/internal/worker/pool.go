@@ -22,13 +22,14 @@ type Pool struct {
 func NewPool(
 	repoService *service.RepoService,
 	githubService *service.GitHubService,
+	fileTreeService *service.FileTreeService,
 	storagePath string,
 	db *pgxpool.Pool,
 	workerCount int,
 ) *Pool {
 	pool := &Pool{
 		jobQueue:      make(chan models.Job, 100),
-		repoProcessor: NewRepoProcessor(repoService, githubService, storagePath, db),
+		repoProcessor: NewRepoProcessor(repoService, githubService, fileTreeService, storagePath, db),
 		workerCount:   workerCount,
 		stopChan:      make(chan struct{}),
 	}

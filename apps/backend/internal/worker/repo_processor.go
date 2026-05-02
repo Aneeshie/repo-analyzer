@@ -12,18 +12,20 @@ import (
 )
 
 type RepoProcessor struct {
-	repoService   *service.RepoService
-	githubService *service.GitHubService
-	storagePath   string
-	db            *pgxpool.Pool
+	repoService     *service.RepoService
+	githubService   *service.GitHubService
+	fileTreeService *service.FileTreeService
+	storagePath     string
+	db              *pgxpool.Pool
 }
 
-func NewRepoProcessor(repoService *service.RepoService, githubService *service.GitHubService, storagePath string, db *pgxpool.Pool) *RepoProcessor {
+func NewRepoProcessor(repoService *service.RepoService, githubService *service.GitHubService, fileTreeService *service.FileTreeService, storagePath string, db *pgxpool.Pool) *RepoProcessor {
 	return &RepoProcessor{
-		repoService:   repoService,
-		githubService: githubService,
-		storagePath:   storagePath,
-		db:            db,
+		repoService:     repoService,
+		githubService:   githubService,
+		fileTreeService: fileTreeService,
+		storagePath:     storagePath,
+		db:              db,
 	}
 }
 
@@ -45,6 +47,15 @@ func (p *RepoProcessor) ProcessRepo(ctx context.Context, repoID, repoURL string)
 	}
 
 	log.Printf("Successfully cloned repo: %s", repoURL)
+
+	// Index the file tree into the database
+	if p.fileTreeService != nil {
+		if err := p.fileTreeService.IndexRepo(ctx, repoID, clonePath); err != nil {
+			log.Printf("Failed to index file tree: %v", err)
+		} else {
+			log.Printf("Successfully indexed file tree for repo: %s", repoID)
+		}
+	}
 
 	if err := p.parseDependencies(ctx, repoID, clonePath); err != nil {
 		log.Printf("Failed to parse dependencies: %v", err)
@@ -74,3 +85,4 @@ func (p *RepoProcessor) parseDependencies(ctx context.Context, repoID, repoPath 
 	}
 	return nil
 }
+

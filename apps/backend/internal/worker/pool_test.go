@@ -81,7 +81,7 @@ func setupTestPool(t *testing.T) (*Pool, *repository.RepoRepository, *pgxpool.Po
 	require.NoError(t, err)
 
 	// Pass the db pool to NewPool
-	workerPool := NewPool(repoService, githubService, storagePath, pool, 2)
+	workerPool := NewPool(repoService, githubService, nil, storagePath, pool, 2)
 
 	cleanup := func() {
 		// Clean up after test
