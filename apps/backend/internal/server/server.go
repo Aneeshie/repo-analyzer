@@ -11,18 +11,20 @@ import (
 )
 
 type Server struct {
-	router      *chi.Mux
-	db          *pgxpool.Pool
-	port        string
-	repoHandler *handlers.RepoHandler
+	router          *chi.Mux
+	db              *pgxpool.Pool
+	port            string
+	repoHandler     *handlers.RepoHandler
+	fileTreeHandler *handlers.FileTreeHandler
 }
 
-func NewServer(db *pgxpool.Pool, repoHandler *handlers.RepoHandler) *Server {
+func NewServer(db *pgxpool.Pool, repoHandler *handlers.RepoHandler, fileTreeHandler *handlers.FileTreeHandler) *Server {
 	server := &Server{
-		router:      chi.NewRouter(),
-		db:          db,
-		port:        ":8080",
-		repoHandler: repoHandler,
+		router:          chi.NewRouter(),
+		db:              db,
+		port:            ":8080",
+		repoHandler:     repoHandler,
+		fileTreeHandler: fileTreeHandler,
 	}
 	server.setupRoutes()
 	return server
@@ -34,6 +36,8 @@ func (s *Server) setupRoutes() {
 	s.router.Post("/api/v1/repos", s.repoHandler.CreateRepo)
 	s.router.Get("/api/v1/repos/{id}", s.repoHandler.GetRepo)
 	s.router.Get("/api/v1/repos/{id}/dependencies", s.repoHandler.GetRepoDependencies)
+	s.router.Get("/api/v1/repos/{id}/tree", s.fileTreeHandler.GetFileTree)
+	s.router.Get("/api/v1/repos/{id}/file", s.fileTreeHandler.GetFileContent)
 }
 
 func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
@@ -50,3 +54,4 @@ func (s *Server) Run() error {
 	log.Printf("Server starting on %s", s.port)
 	return http.ListenAndServe(s.port, s.router)
 }
+

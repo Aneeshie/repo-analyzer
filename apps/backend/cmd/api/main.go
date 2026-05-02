@@ -34,8 +34,11 @@ func main() {
 
 	repoRepo := repository.NewRepoRepository(pool)
 	depRepo := repository.NewDependencyRepository(pool)
+	fileTreeRepo := repository.NewFileTreeRepository(pool)
+
 	repoService := service.NewRepoService(repoRepo, depRepo)
 	githubService := service.NewGitHubService()
+	fileTreeService := service.NewFileTreeService(fileTreeRepo)
 
 	//get the storage path
 	storagePath := os.Getenv("STORAGE_PATH")
@@ -44,15 +47,17 @@ func main() {
 	}
 
 	//create workerPool
-	workerPool := worker.NewPool(repoService, githubService, storagePath, pool, 4)
+	workerPool := worker.NewPool(repoService, githubService, fileTreeService, storagePath, pool, 4)
 	defer workerPool.Shutdown()
 
 	// pass worker pool to the handler
 	repoHandler := handlers.NewRepoHandler(repoService, workerPool)
+	fileTreeHandler := handlers.NewFileTreeHandler(fileTreeService, storagePath)
 
-	srv := server.NewServer(pool, repoHandler)
+	srv := server.NewServer(pool, repoHandler, fileTreeHandler)
 	if err := srv.Run(); err != nil {
 		log.Fatal("Server error:", err)
 	}
 
 }
+
