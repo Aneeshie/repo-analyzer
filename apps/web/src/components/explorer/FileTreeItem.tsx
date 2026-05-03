@@ -1,7 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { useParams } from "next/navigation";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export type FileTreeNodeType = "file" | "directory";
 
@@ -79,37 +85,76 @@ export function FileTreeItem({
 
   const Icon = isDirectory ? (expanded ? FolderOpenIcon : FolderIcon) : FileIcon;
 
+  // Tooltip & Explanation State
+  const params = useParams();
+  const repoId = params.id as string;
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
+  const [explanation, setExplanation] = useState<string | null>(null);
+  const [isLoadingExplanation, setIsLoadingExplanation] = useState(false);
+
+  useEffect(() => {
+    if (isTooltipOpen && !explanation && !isLoadingExplanation) {
+      const fetchExplanation = async () => {
+        setIsLoadingExplanation(true);
+        try {
+          const res = await fetch(
+            `/api/v1/repos/${repoId}/explain?path=${encodeURIComponent(node.path)}`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            setExplanation(data.explanation);
+          }
+        } catch (err) {
+          console.error("Failed to fetch explanation:", err);
+        } finally {
+          setIsLoadingExplanation(false);
+        }
+      };
+      fetchExplanation();
+    }
+  }, [isTooltipOpen, explanation, isLoadingExplanation, repoId, node.path]);
+
   return (
     <div className="select-none">
-      <button
-        type="button"
-        onClick={handleClick}
-        title={node.path}
-        className={cn(
-          "group flex h-[24px] w-full items-center gap-1.5 pr-2 text-left text-[13px] leading-none transition-none",
-          "text-zinc-400 hover:bg-white/5 hover:text-zinc-200",
-          isSelected && "bg-white/10 text-white hover:bg-white/10",
-        )}
-        style={{ paddingLeft: `${level * 12 + 12}px` }}
-      >
-        <div className="flex h-4 w-4 shrink-0 items-center justify-center">
-          {isDirectory ? (
-            <ChevronRightIcon
+      <Tooltip open={isTooltipOpen} onOpenChange={setIsTooltipOpen} delayDuration={600}>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={handleClick}
+            className={cn(
+              "group flex h-[24px] w-full items-center gap-1.5 pr-2 text-left text-[13px] leading-none transition-none",
+              "text-zinc-400 hover:bg-white/5 hover:text-zinc-200",
+              isSelected && "bg-white/10 text-white hover:bg-white/10",
+            )}
+            style={{ paddingLeft: `${level * 12 + 12}px` }}
+          >
+            <div className="flex h-4 w-4 shrink-0 items-center justify-center">
+              {isDirectory ? (
+                <ChevronRightIcon
+                  className={cn(
+                    "h-3.5 w-3.5 text-zinc-500 transition-transform duration-100 ease-out",
+                    expanded && "rotate-90",
+                  )}
+                />
+              ) : null}
+            </div>
+            <Icon
               className={cn(
-                "h-3.5 w-3.5 text-zinc-500 transition-transform duration-100 ease-out",
-                expanded && "rotate-90",
+                "h-4 w-4 shrink-0",
+                isDirectory ? "text-zinc-300" : "text-zinc-400"
               )}
             />
-          ) : null}
-        </div>
-        <Icon
-          className={cn(
-            "h-4 w-4 shrink-0",
-            isDirectory ? "text-zinc-300" : "text-zinc-400"
+            <span className="min-w-0 flex-1 truncate">{node.name}</span>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right" sideOffset={15} className="max-w-[300px] bg-zinc-900 border-zinc-800 text-zinc-300 text-xs py-1.5 px-2">
+          {isLoadingExplanation ? (
+            <span className="animate-pulse">Loading explanation...</span>
+          ) : (
+            <span className="leading-relaxed">{explanation || "No explanation available."}</span>
           )}
-        />
-        <span className="min-w-0 flex-1 truncate">{node.name}</span>
-      </button>
+        </TooltipContent>
+      </Tooltip>
 
       {isDirectory ? (
         <div
