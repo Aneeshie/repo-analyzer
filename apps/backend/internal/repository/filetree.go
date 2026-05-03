@@ -111,3 +111,28 @@ func scanFileNodes(rows scannable) ([]models.FileNode, error) {
 	}
 	return nodes, nil
 }
+
+// receives a cached explanation for a specific file or directory
+func (r *FileTreeRepository) GetExplanation(ctx context.Context, repoID string, path string) (*models.FileExplanation, error) {
+	query := `
+		SELECT repo_id, path, explanation
+		FROM file_explanations
+		WHERE repo_id = $1 AND path = $2
+	`
+	var exp models.FileExplanation
+	err := r.db.QueryRow(ctx, query, repoID, path).Scan(&exp.RepoID, &exp.Path, &exp.Explanation)
+	if err != nil {
+		return nil, err
+	}
+	return &exp, nil
+}
+
+func (r *FileTreeRepository) SaveExplanation(ctx context.Context, exp models.FileExplanation) error {
+	query := `
+		INSERT INTO file_explanations (repo_id, path, explanation)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (repo_id, path) DO UPDATE SET explanation = EXCLUDED.explanation
+	`
+	_, err := r.db.Exec(ctx, query, exp.RepoID, exp.Path, exp.Explanation)
+	return err
+}
