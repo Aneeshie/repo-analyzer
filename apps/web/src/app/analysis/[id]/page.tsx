@@ -24,6 +24,7 @@ interface Repo {
   url: string;
   status: RepoStatus;
   created_at: string;
+  entry_points?: string[];
 }
 
 export default function AnalysisPage() {
@@ -81,7 +82,7 @@ export default function AnalysisPage() {
     <div className="flex h-screen w-screen flex-col bg-[#1e1e1e] text-zinc-200 overflow-hidden">
       {displayStatus === "completed" ? (
         <main className="flex-1 overflow-hidden bg-[#1e1e1e]">
-          <ExplorerLayout repoId={id} className="h-full w-full border-none shadow-none rounded-none bg-transparent" />
+          <ExplorerLayout repo={repo!} className="h-full w-full border-none shadow-none rounded-none bg-transparent" />
         </main>
       ) : (
         <div className="flex flex-1 items-center justify-center animate-in fade-in duration-1000">

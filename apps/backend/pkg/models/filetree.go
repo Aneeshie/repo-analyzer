@@ -30,3 +30,10 @@ type FileContent struct {
 	Language *string `json:"language,omitempty"`
 	Size     int64   `json:"size"`
 }
+
+// FileExplanation represents the AI-generated explanation for a file or directory.
+type FileExplanation struct {
+	RepoID      string `json:"repo_id"`
+	Path        string `json:"path"`
+	Explanation string `json:"explanation"`
+}

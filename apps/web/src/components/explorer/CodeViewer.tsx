@@ -8,9 +8,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { Breadcrumbs } from "./Breadcrumbs";
 
+interface Repo {
+  id: string;
+  url: string;
+  status: string;
+  created_at: string;
+  entry_points?: string[];
+}
+
 interface CodeViewerProps {
-  repoId: string;
+  repo: Repo;
   selectedPath?: string | null;
+  onFileSelect?: (node: { path: string; name: string; type: "file" | "directory" }) => void;
   className?: string;
 }
 
@@ -81,11 +90,79 @@ function CodeSkeleton() {
   );
 }
 
+function SelectionPopup() {
+  const [selection, setSelection] = useState<{ text: string; top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    const handleMouseUp = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('#ask-ai-btn')) {
+        return;
+      }
+
+      const activeSelection = window.getSelection();
+      if (!activeSelection || activeSelection.isCollapsed) {
+        setSelection(null);
+        return;
+      }
+      
+      const text = activeSelection.toString().trim();
+      if (!text) {
+        setSelection(null);
+        return;
+      }
+
+      const range = activeSelection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+
+      // Ensure the selection is within the CodeViewer
+      const container = document.getElementById("code-viewer-content");
+      if (container && container.contains(range.commonAncestorContainer)) {
+        setSelection({
+          text,
+          top: rect.top - 40, // Position above the selection
+          left: rect.left + rect.width / 2, // Center above selection
+        });
+      } else {
+        setSelection(null);
+      }
+    };
+
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => document.removeEventListener("mouseup", handleMouseUp);
+  }, []);
+
+  if (!selection) return null;
+
+  return (
+    <button
+      id="ask-ai-btn"
+      className="fixed z-50 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xl hover:bg-blue-500 hover:scale-105 transition-all"
+      style={{ top: selection.top, left: selection.left }}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        alert(`Ask AI about:\n\n${selection.text}`);
+        setSelection(null);
+        window.getSelection()?.removeAllRanges();
+      }}
+    >
+      <span className="text-sm">✨</span> Ask AI
+    </button>
+  );
+}
+
 export function CodeViewer({
-  repoId,
+  repo,
   selectedPath,
+  onFileSelect,
   className,
 }: CodeViewerProps) {
+  const repoId = repo.id;
   const [file, setFile] = useState<FileContentResponse | null>(null);
   const [highlightedHtml, setHighlightedHtml] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -201,10 +278,11 @@ export function CodeViewer({
   return (
     <section
       className={cn(
-        "flex h-full min-h-0 flex-col bg-transparent text-zinc-200",
+        "flex h-full min-h-0 flex-col bg-transparent text-zinc-200 relative",
         className,
       )}
     >
+      <SelectionPopup />
       <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-white/5 bg-zinc-950/30 px-5 backdrop-blur-md">
         <Breadcrumbs path={selectedPath} className="flex-1" />
         {selectedPath && file ? (
@@ -237,12 +315,30 @@ export function CodeViewer({
               <FileCode2 className="relative z-10 h-10 w-10 text-blue-400 drop-shadow-[0_0_15px_rgba(96,165,250,0.5)]" />
             </div>
             <h3 className="text-lg font-medium text-zinc-200 tracking-tight">
-              No file selected
+              Repository Explorer
             </h3>
             <p className="mt-2 max-w-sm text-sm leading-relaxed text-zinc-500">
-              Select a file from the explorer to view its source code with
-              syntax highlighting and line numbers.
+              Select a file from the explorer to view its source code.
             </p>
+            {repo.entry_points && repo.entry_points.length > 0 && (
+              <div className="mt-8 flex flex-col items-center">
+                <span className="text-xs font-semibold uppercase tracking-widest text-zinc-500 mb-3">
+                  Suggested Starting Points
+                </span>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {repo.entry_points.map((ep) => (
+                    <button
+                      key={ep}
+                      type="button"
+                      onClick={() => onFileSelect?.({ path: ep, name: ep.split('/').pop() || ep, type: "file" })}
+                      className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-sm text-zinc-300 transition-colors"
+                    >
+                      {ep}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : null}
 
@@ -263,7 +359,7 @@ export function CodeViewer({
         ) : null}
 
         {selectedPath && !loading && !error && file ? (
-          <div className="h-full overflow-auto">
+          <div id="code-viewer-content" className="h-full overflow-auto">
             {highlighting && !highlightedHtml ? (
               <div className="flex h-full items-center justify-center gap-2 text-sm text-zinc-400">
                 <Loader2 className="h-4 w-4 animate-spin" />

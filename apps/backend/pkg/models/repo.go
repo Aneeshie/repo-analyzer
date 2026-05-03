@@ -15,8 +15,9 @@ type Repo struct {
 	ID        string    `json:"id"`
 	URL       string    `json:"url"`
 	Status    string    `json:"status"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	EntryPoints []string  `json:"entry_points,omitempty"`
 }
 
 type Job struct {
@@ -38,6 +39,7 @@ type GetRepoResponse struct {
 	ID        string    `json:"id"`
 	URL       string    `json:"url"`
 	Status    string    `json:"status"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	EntryPoints []string  `json:"entry_points,omitempty"`
 }
