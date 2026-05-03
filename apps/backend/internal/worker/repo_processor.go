@@ -61,6 +61,14 @@ func (p *RepoProcessor) ProcessRepo(ctx context.Context, repoID, repoURL string)
 		log.Printf("Failed to parse dependencies: %v", err)
 	}
 
+	// Mock entry point detection
+	log.Printf("Detecting entry points for repo %s...", repoID)
+	// Just mock detecting a few common ones
+	mockEntryPoints := []string{"main.go", "package.json", "index.ts"}
+	if err := p.repoService.UpdateRepoEntryPoints(ctx, repoID, mockEntryPoints); err != nil {
+		log.Printf("Failed to update entry points: %v", err)
+	}
+
 	//update status to completed (for now, parsing later....)
 	if err := p.repoService.UpdateRepoStatus(ctx, repoID, models.StatusCompleted); err != nil {
 		log.Printf("failed to update repo status: %v", err)
