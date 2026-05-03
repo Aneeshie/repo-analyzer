@@ -14,12 +14,21 @@ import { CodeViewer } from "./CodeViewer";
 import { FileTree } from "./FileTree";
 import type { FileTreeNode } from "./FileTreeItem";
 
+interface Repo {
+  id: string;
+  url: string;
+  status: string;
+  created_at: string;
+  entry_points?: string[];
+}
+
 interface ExplorerLayoutProps {
-  repoId: string;
+  repo: Repo;
   className?: string;
 }
 
-export function ExplorerLayout({ repoId, className }: ExplorerLayoutProps) {
+export function ExplorerLayout({ repo, className }: ExplorerLayoutProps) {
+  const repoId = repo.id;
   const [selectedFile, setSelectedFile] = useState<FileTreeNode | null>(null);
   const [mobileTreeOpen, setMobileTreeOpen] = useState(false);
 
@@ -69,13 +78,13 @@ export function ExplorerLayout({ repoId, className }: ExplorerLayoutProps) {
             <Separator className="flex w-[1px] bg-white/10 hover:w-[2px] hover:bg-blue-500 transition-all cursor-col-resize" />
 
             <Panel minSize={45}>
-              <CodeViewer repoId={repoId} selectedPath={selectedFile?.path} />
+              <CodeViewer repo={repo} selectedPath={selectedFile?.path} onFileSelect={handleFileSelect} />
             </Panel>
           </Group>
         </div>
 
         <div className="h-full md:hidden">
-          <CodeViewer repoId={repoId} selectedPath={selectedFile?.path} />
+          <CodeViewer repo={repo} selectedPath={selectedFile?.path} onFileSelect={handleFileSelect} />
 
           <div
             className={cn(
