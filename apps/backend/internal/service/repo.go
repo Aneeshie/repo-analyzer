@@ -39,3 +39,8 @@ func (s *RepoService) UpdateRepoStatus(ctx context.Context, id string, status st
 func (s *RepoService) GetRepoDependencies(ctx context.Context, id string) ([]models.Dependency, error) {
 	return s.depRepo.GetByRepoID(ctx, id)
 }
+
+// UpdateRepoEntryPoints updates the entry points for a repo.
+func (s *RepoService) UpdateRepoEntryPoints(ctx context.Context, id string, entryPoints []string) error {
+	return s.repoRepo.UpdateEntryPoints(ctx, id, entryPoints)
+}

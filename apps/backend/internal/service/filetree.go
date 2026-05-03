@@ -9,6 +9,7 @@ import (
 
 	"github.com/Aneeshie/repo-analyzer/backend/internal/repository"
 	"github.com/Aneeshie/repo-analyzer/backend/pkg/models"
+	"github.com/jackc/pgx/v5"
 )
 
 // Directories to skip when indexing a repo's file tree.
@@ -26,46 +27,46 @@ var skipDirs = map[string]bool{
 
 // Extension-to-language mapping for syntax highlighting.
 var extToLanguage = map[string]string{
-	".go":         "go",
-	".ts":         "typescript",
-	".tsx":        "tsx",
-	".js":         "javascript",
-	".jsx":        "jsx",
-	".py":         "python",
-	".rs":         "rust",
-	".java":       "java",
-	".rb":         "ruby",
-	".php":        "php",
-	".c":          "c",
-	".cpp":        "cpp",
-	".h":          "c",
-	".cs":         "csharp",
-	".swift":      "swift",
-	".kt":         "kotlin",
-	".scala":      "scala",
-	".html":       "html",
-	".css":        "css",
-	".scss":       "scss",
-	".json":       "json",
-	".yaml":       "yaml",
-	".yml":        "yaml",
-	".toml":       "toml",
-	".xml":        "xml",
-	".md":         "markdown",
-	".sql":        "sql",
-	".sh":         "bash",
-	".bash":       "bash",
-	".zsh":        "bash",
-	".dockerfile": "dockerfile",
-	".proto":      "protobuf",
-	".graphql":    "graphql",
-	".env":        "plaintext",
-	".txt":        "plaintext",
-	".csv":        "plaintext",
-	".lock":       "plaintext",
-	".mod":        "go",
-	".sum":        "plaintext",
-	".gitignore":  "plaintext",
+	".go":           "go",
+	".ts":           "typescript",
+	".tsx":          "tsx",
+	".js":           "javascript",
+	".jsx":          "jsx",
+	".py":           "python",
+	".rs":           "rust",
+	".java":         "java",
+	".rb":           "ruby",
+	".php":          "php",
+	".c":            "c",
+	".cpp":          "cpp",
+	".h":            "c",
+	".cs":           "csharp",
+	".swift":        "swift",
+	".kt":           "kotlin",
+	".scala":        "scala",
+	".html":         "html",
+	".css":          "css",
+	".scss":         "scss",
+	".json":         "json",
+	".yaml":         "yaml",
+	".yml":          "yaml",
+	".toml":         "toml",
+	".xml":          "xml",
+	".md":           "markdown",
+	".sql":          "sql",
+	".sh":           "bash",
+	".bash":         "bash",
+	".zsh":          "bash",
+	".dockerfile":   "dockerfile",
+	".proto":        "protobuf",
+	".graphql":      "graphql",
+	".env":          "plaintext",
+	".txt":          "plaintext",
+	".csv":          "plaintext",
+	".lock":         "plaintext",
+	".mod":          "go",
+	".sum":          "plaintext",
+	".gitignore":    "plaintext",
 	".editorconfig": "plaintext",
 }
 
@@ -249,4 +250,41 @@ func buildTree(nodes []models.FileNode) []*models.FileTreeNode {
 	}
 
 	return roots
+}
+
+func (s *FileTreeService) GetExplanation(ctx context.Context, repoID, path string) (*models.FileExplanation, error) {
+	exp, err := s.repo.GetExplanation(ctx, repoID, path)
+	if err == nil {
+		return exp, nil
+	}
+
+	if err != pgx.ErrNoRows {
+		return nil, err
+	}
+
+	// Mocking LLM response
+	// Simulate an API delay
+	// time.Sleep(500 * time.Millisecond)
+
+	mockExplanation := fmt.Sprintf("This is a mocked AI explanation for '%s'. It handles logic related to this component in the repository.", filepath.Base(path))
+	if path == "" || path == "." {
+		mockExplanation = "This is the root of the repository."
+	} else if strings.HasSuffix(path, ".go") {
+		mockExplanation = fmt.Sprintf("This Go file (%s) contains backend logic, likely defining handlers, services, or models.", filepath.Base(path))
+	} else if strings.HasSuffix(path, ".tsx") {
+		mockExplanation = fmt.Sprintf("This React component (%s) defines UI elements and frontend interactions.", filepath.Base(path))
+	}
+
+	newExp := models.FileExplanation{
+		RepoID:      repoID,
+		Path:        path,
+		Explanation: mockExplanation,
+	}
+
+	err = s.repo.SaveExplanation(ctx, newExp)
+	if err != nil {
+		return nil, err
+	}
+
+	return &newExp, nil
 }
