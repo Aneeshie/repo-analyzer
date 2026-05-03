@@ -38,6 +38,7 @@ func (s *Server) setupRoutes() {
 	s.router.Get("/api/v1/repos/{id}/dependencies", s.repoHandler.GetRepoDependencies)
 	s.router.Get("/api/v1/repos/{id}/tree", s.fileTreeHandler.GetFileTree)
 	s.router.Get("/api/v1/repos/{id}/file", s.fileTreeHandler.GetFileContent)
+	s.router.Get("/api/v1/repos/{id}/explain", s.fileTreeHandler.GetFileExplanation)
 }
 
 func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
