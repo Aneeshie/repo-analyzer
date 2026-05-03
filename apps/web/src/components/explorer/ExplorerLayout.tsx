@@ -4,13 +4,11 @@ import { useState } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import {
   FolderTree,
-  GripVertical,
   PanelLeftClose,
   PanelLeftOpen,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { CodeViewer } from "./CodeViewer";
 import { FileTree } from "./FileTree";
@@ -31,49 +29,35 @@ export function ExplorerLayout({ repoId, className }: ExplorerLayoutProps) {
   };
 
   return (
-    <div className="relative group">
-      {/* Subtle background glow effect */}
-      <div className="absolute -inset-1 -z-10 rounded-xl bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-purple-500/20 opacity-50 blur-xl transition-all duration-500 group-hover:opacity-70" />
-      
-      <Card
-        className={cn(
-          "overflow-hidden border border-white/10 bg-zinc-950/80 py-0 shadow-2xl backdrop-blur-xl",
-          className,
-        )}
-      >
-        <CardHeader className="h-14 border-b border-white/5 bg-transparent px-4">
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-zinc-100 tracking-wide">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/20">
-                <FolderTree className="h-4 w-4 text-white" />
-              </div>
-              <span className="bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">Repository Explorer</span>
-            </CardTitle>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="border-white/10 bg-white/5 text-zinc-200 hover:bg-white/10 md:hidden"
-              onClick={() => setMobileTreeOpen((open) => !open)}
-            >
-              {mobileTreeOpen ? (
-                <PanelLeftClose className="h-4 w-4" />
-              ) : (
-                <PanelLeftOpen className="h-4 w-4" />
-              )}
-              Files
-            </Button>
-          </div>
-        </CardHeader>
+    <div className={cn("flex flex-col h-full w-full bg-[#1e1e1e] overflow-hidden", className)}>
+      <div className="flex h-10 shrink-0 items-center justify-between border-b border-white/5 px-4 bg-[#1e1e1e]">
+        <div className="flex items-center gap-2 text-xs font-medium text-zinc-400 uppercase tracking-widest">
+          Explorer
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="border-white/10 bg-white/5 text-zinc-200 hover:bg-white/10 md:hidden h-7 text-xs px-2"
+          onClick={() => setMobileTreeOpen((open) => !open)}
+        >
+          {mobileTreeOpen ? (
+            <PanelLeftClose className="h-3 w-3 mr-1" />
+          ) : (
+            <PanelLeftOpen className="h-3 w-3 mr-1" />
+          )}
+          Files
+        </Button>
+      </div>
 
-      <CardContent className="relative h-[70vh] min-h-[520px] p-0">
+      <div className="relative flex-1 min-h-0">
         <div className="hidden h-full md:block">
           <Group orientation="horizontal" className="h-full">
             <Panel
-              defaultSize="300px"
-              minSize="220px"
-              maxSize="45%"
-              className="min-w-[220px]"
+              defaultSize="20"
+              minSize="15"
+              maxSize="40"
+              className="min-w-[200px]"
             >
               <FileTree
                 repoId={repoId}
@@ -82,11 +66,7 @@ export function ExplorerLayout({ repoId, className }: ExplorerLayoutProps) {
               />
             </Panel>
 
-            <Separator className="group relative flex w-[3px] items-center justify-center bg-white/5 transition-all hover:w-[4px] hover:bg-blue-500/70 data-[resize-handle-active]:w-[4px] data-[resize-handle-active]:bg-blue-500">
-              <div className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-zinc-900/80 p-1 text-zinc-400 shadow-xl backdrop-blur-md transition-all group-hover:flex">
-                <GripVertical className="h-4 w-4 opacity-70" />
-              </div>
-            </Separator>
+            <Separator className="flex w-[1px] bg-white/10 hover:w-[2px] hover:bg-blue-500 transition-all cursor-col-resize" />
 
             <Panel minSize={45}>
               <CodeViewer repoId={repoId} selectedPath={selectedFile?.path} />
@@ -136,8 +116,7 @@ export function ExplorerLayout({ repoId, className }: ExplorerLayoutProps) {
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
     </div>
   );
 }

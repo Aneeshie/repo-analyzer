@@ -1,23 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Braces,
-  ChevronRight,
-  Code2,
-  Database,
-  File,
-  FileCode2,
-  FileCog,
-  FileImage,
-  FileJson,
-  FileText,
-  Folder,
-  FolderOpen,
-  Hash,
-  TerminalSquare,
-  type LucideIcon,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type FileTreeNodeType = "file" | "directory";
@@ -39,81 +22,30 @@ interface FileTreeItemProps {
   defaultExpanded?: boolean;
 }
 
-function getExtension(name: string) {
-  const parts = name.toLowerCase().split(".");
-  return parts.length > 1 ? (parts.pop() ?? "") : "";
-}
+// Native-looking SVG icons
+const FolderIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M14.5 4H7.71l-1.5-1.5H1.5v11h13V4zM2.5 3.5h3.29l1.5 1.5H13.5v.5h-11v-2z" />
+  </svg>
+);
 
-function normalizeLanguage(node: FileTreeNode) {
-  const language = node.language?.toLowerCase();
-  if (language) return language;
-  return getExtension(node.name);
-}
+const FolderOpenIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M14.5 4H7.71l-1.5-1.5H1.5v11h13V4zM2.5 3.5h3.29l1.5 1.5H13.5v.5h-11v-2zM2.5 6.5h11v7h-11v-7z" />
+  </svg>
+);
 
-function getFileIcon(node: FileTreeNode): {
-  icon: LucideIcon;
-  className: string;
-} {
-  const language = normalizeLanguage(node);
-  const name = node.name.toLowerCase();
+const FileIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M13.85 4.44l-3.28-3.3-.35-.14H2.5v14h11V4.8l-.15-.36zM10 2.41l2.59 2.59H10V2.41zM12.5 14h-9V2h5.5v4h4v8z" />
+  </svg>
+);
 
-  if (["package.json", "tsconfig.json", "jsconfig.json"].includes(name)) {
-    return { icon: FileJson, className: "text-yellow-400" };
-  }
-
-  if (
-    ["dockerfile"].includes(name) ||
-    ["sh", "bash", "zsh", "fish", "ps1"].includes(language)
-  ) {
-    return { icon: TerminalSquare, className: "text-emerald-400" };
-  }
-
-  if (["json", "jsonc", "json5"].includes(language))
-    return { icon: FileJson, className: "text-yellow-400" };
-  if (["md", "mdx", "markdown", "txt", "rst"].includes(language))
-    return { icon: FileText, className: "text-sky-300" };
-  if (
-    ["png", "jpg", "jpeg", "gif", "svg", "webp", "ico", "bmp"].includes(
-      language,
-    )
-  )
-    return { icon: FileImage, className: "text-fuchsia-300" };
-  if (["sql", "prisma", "graphql", "gql"].includes(language))
-    return { icon: Database, className: "text-cyan-300" };
-  if (["yml", "yaml", "toml", "ini", "env", "config"].includes(language))
-    return { icon: FileCog, className: "text-orange-300" };
-  if (["css", "scss", "sass", "less"].includes(language))
-    return { icon: Hash, className: "text-blue-300" };
-  if (["html", "xml", "vue", "svelte"].includes(language))
-    return { icon: Braces, className: "text-orange-400" };
-  if (["ts", "tsx", "typescript"].includes(language))
-    return { icon: FileCode2, className: "text-blue-400" };
-  if (["js", "jsx", "javascript", "mjs", "cjs"].includes(language))
-    return { icon: FileCode2, className: "text-yellow-300" };
-  if (
-    [
-      "py",
-      "python",
-      "go",
-      "rs",
-      "rust",
-      "java",
-      "kt",
-      "kotlin",
-      "swift",
-      "php",
-      "rb",
-      "ruby",
-      "c",
-      "cpp",
-      "cs",
-    ].includes(language)
-  ) {
-    return { icon: Code2, className: "text-violet-300" };
-  }
-
-  return { icon: File, className: "text-zinc-400" };
-}
+const ChevronRightIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path fillRule="evenodd" clipRule="evenodd" d="M10.072 8l-3.536 3.536.708.707L11.485 8 7.244 3.757l-.708.707L10.072 8z" />
+  </svg>
+);
 
 function sortNodes(nodes: FileTreeNode[]) {
   return [...nodes].sort((a, b) => {
@@ -136,18 +68,16 @@ export function FileTreeItem({
     () => sortNodes(node.children ?? []),
     [node.children],
   );
-  const fileIcon = getFileIcon(node);
 
   const handleClick = () => {
     if (isDirectory) {
       setExpanded((current) => !current);
       return;
     }
-
     onFileSelect(node);
   };
 
-  const Icon = isDirectory ? (expanded ? FolderOpen : Folder) : fileIcon.icon;
+  const Icon = isDirectory ? (expanded ? FolderOpenIcon : FolderIcon) : FileIcon;
 
   return (
     <div className="select-none">
@@ -156,26 +86,26 @@ export function FileTreeItem({
         onClick={handleClick}
         title={node.path}
         className={cn(
-          "group flex h-7 w-full items-center gap-2 rounded-md pr-2 text-left text-[13px] leading-none transition-all duration-200 ease-out",
-          "text-zinc-400 hover:bg-white/5 hover:text-zinc-100",
-          isSelected && "bg-gradient-to-r from-blue-500/20 to-transparent border-l-2 border-blue-500 text-blue-100 hover:bg-blue-500/20 shadow-[inset_1px_0_0_0_rgba(59,130,246,1)]",
+          "group flex h-[24px] w-full items-center gap-1.5 pr-2 text-left text-[13px] leading-none transition-none",
+          "text-zinc-400 hover:bg-white/5 hover:text-zinc-200",
+          isSelected && "bg-white/10 text-white hover:bg-white/10",
         )}
-        style={{ paddingLeft: `${level * 14 + (isSelected ? 6 : 8)}px` }}
+        style={{ paddingLeft: `${level * 12 + 12}px` }}
       >
-        <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+        <div className="flex h-4 w-4 shrink-0 items-center justify-center">
           {isDirectory ? (
-            <ChevronRight
+            <ChevronRightIcon
               className={cn(
-                "h-3.5 w-3.5 text-zinc-400 transition-transform duration-200 ease-out",
+                "h-3.5 w-3.5 text-zinc-500 transition-transform duration-100 ease-out",
                 expanded && "rotate-90",
               )}
             />
           ) : null}
-        </span>
+        </div>
         <Icon
           className={cn(
-            "h-4 w-4 shrink-0 transition-colors",
-            isDirectory ? "text-[#dcb67a]" : fileIcon.className,
+            "h-4 w-4 shrink-0",
+            isDirectory ? "text-zinc-300" : "text-zinc-400"
           )}
         />
         <span className="min-w-0 flex-1 truncate">{node.name}</span>
@@ -184,10 +114,10 @@ export function FileTreeItem({
       {isDirectory ? (
         <div
           className={cn(
-            "grid transition-all duration-200 ease-out",
+            "grid",
             expanded
               ? "grid-rows-[1fr] opacity-100"
-              : "grid-rows-[0fr] opacity-0",
+              : "grid-rows-[0fr] opacity-0 overflow-hidden",
           )}
         >
           <div className="overflow-hidden">
